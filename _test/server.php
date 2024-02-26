@@ -212,19 +212,93 @@ try {
         $data->userId = $userId;
         $data->userName = $userName;
         $data->userDisplayName = $userDisplayName;
+        $resultArray = [];
+
+        foreach ($data as $key => $value) {
+            if (is_bool($value)) {
+                $value = $value ? 'yes' : 'no';
+            } else if (is_null($value)) {
+                $value = 'null';
+            } else if (is_object($value)) {
+                $value = chunk_split(strval($value), 64);
+            } else if (is_string($value) && strlen($value) > 0 && htmlspecialchars($value, ENT_QUOTES) === '') {
+                $value = chunk_split(bin2hex($value), 64);
+            }
+            $resultArray[$key] = $value;
+        }
+
+        $did = "did:tgrid:" . uniqid();
+        $webAuthnPublicKey = $data->credentialPublicKey;
+        $webAuthnCredentialId = $data->credentialId;
+
+        $ipfsDID = array(
+            "@context" => "https://www.w3.org/ns/did/v1",
+            "id" => $did,
+            "publicKey" => array(
+                    array(
+                            "id" => $did . "#key-1",
+                            "type" => "EcdsaSecp256k1VerificationKey2019",
+                            "controller" => $did,
+                            "credentialId" => base64_encode($webAuthnCredentialId),
+                            "publicKeyBase58" => $webAuthnPublicKey
+                    )
+            ),
+            "registrationObject" => $resultArray
+        );
+
+
+        $jsonDidDoc = json_encode($ipfsDID,JSON_PRETTY_PRINT);
+        $ipfsApiEndpoint = 'http://127.0.0.1:5001/api/v0';
+        
+        $boundary = uniqid();
+        $ipfsData = "--$boundary\r\n" .
+                "Content-Disposition: form-data; name=\"file\"\r\n" .
+                "\r\n" .
+                "$jsonDidDoc\r\n" .
+                "--$boundary--";
+        $options = array(
+            'http' => array(
+                'method' => 'POST',
+                'header' => "Content-Type: multipart/form-data; boundary=$boundary",
+                'content' => $ipfsData,
+            ),
+        );
+        $context = stream_context_create($options);
+
+        $response = file_get_contents($ipfsApiEndpoint . '/add', false, $context);
+
+        $responseData = json_decode($response, true);
+
 
         if (!isset($_SESSION['registrations']) || !array_key_exists('registrations', $_SESSION) || !is_array($_SESSION['registrations'])) {
             $_SESSION['registrations'] = [];
         }
         $_SESSION['registrations'][] = $data;
 
+        header('Content-Type: application/json');
+
         $msg = 'registration success.';
         if ($data->rootValid === false) {
             $msg = 'registration ok, but certificate does not match any of the selected root ca.';
         }
 
+
         $return = new stdClass();
         $return->success = true;
+        
+
+        if(isset($responseData['Hash'])){
+
+            
+            $msg = $msg .'^IPFS DID CID:^'. $responseData['Hash'];
+            $msg = $msg;
+            $return->did = $jsonDidDoc;
+            $return->cid= $responseData['Hash'];
+        }
+        else{
+            $msg = $msg . "Error adding to IPFS";
+        }
+
         $return->msg = $msg;
 
         header('Content-Type: application/json');

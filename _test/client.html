@@ -55,7 +55,8 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 // prompt server response
                 if (authenticatorAttestationServerResponse.success) {
                     reloadServerPreview();
-                    window.alert(authenticatorAttestationServerResponse.msg || 'registration success');
+                    let msg = authenticatorAttestationServerResponse.msg.split("^").join("\n");
+                    window.alert(msg || 'registration success');
 
                 } else {
                     throw new Error(authenticatorAttestationServerResponse.msg);
