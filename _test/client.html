@@ -7,7 +7,40 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
     <head>
         <title>lbuchs/WebAuthn Test</title>
         <meta charset="UTF-8">
+        <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
         <script>
+        
+        /**
+         * Check if userName is taken using GunJS storage 
+         * element as a look up table
+         * @returns {boolean}
+         */
+        nodeId = 'IPFS-CID-7713491827f3s2ww24449AsssQMaEmRDDmes7uo3';
+
+        async function isUserNameTaken(user_name){
+
+                try{
+                gun = GUN(
+                ['https://gun-manhattan.herokuapp.com/gun',
+                    'https://gundb-relay-mlccl.ondigitalocean.app/gun',
+                    'https://peer.wallie.io/gun',
+                    'https://secure-cc34.cc:8765/gun'
+                ]);
+
+                console.log('username passed to isUserNameTake', user_name);
+                return new Promise((resolve, reject) => {
+                    gun.get(nodeId).get(user_name).once((data,key)=>{
+                        resolve(!!data);
+                    });
+                });
+                }
+                catch(error){
+                    return true;
+                    console.log(error);
+                }
+
+        }
+
 
         /**
          * creates a new FIDO2 registration
@@ -20,6 +53,13 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
                     throw new Error('Browser not supported.');
                 }
+
+                
+                if(await isUserNameTaken(encodeURIComponent(document.getElementById('userName').value))){
+                    throw new Error('Username not available');
+                }
+
+                
 
                 // get create args
                 let rep = await window.fetch('server.php?fn=getCreateArgs' + getGetParams(), {method:'GET', cache:'no-cache'});
@@ -56,8 +96,12 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 if (authenticatorAttestationServerResponse.success) {
                     reloadServerPreview();
                     let msg = authenticatorAttestationServerResponse.msg.split("^").join("\n");
+                    
                     window.alert(msg || 'registration success');
-
+                    if(authenticatorAttestationServerResponse.cid){
+                        let user_name = encodeURIComponent(document.getElementById('userName').value);
+                        gun.get(nodeId).get(user_name).put({cid: authenticatorAttestationServerResponse.cid});
+                    }
                 } else {
                     throw new Error(authenticatorAttestationServerResponse.msg);
                 }
@@ -79,6 +123,7 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
                     throw new Error('Browser not supported.');
                 }
+                
 
                 // get check args
                 let rep = await window.fetch('server.php?fn=getGetArgs' + getGetParams(), {method:'GET',cache:'no-cache'});
