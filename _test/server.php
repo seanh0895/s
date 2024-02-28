@@ -47,6 +47,8 @@ try {
     $userName = filter_input(INPUT_GET, 'userName', FILTER_SANITIZE_SPECIAL_CHARS);
     $userDisplayName = filter_input(INPUT_GET, 'userDisplayName', FILTER_SANITIZE_SPECIAL_CHARS);
 
+    $cid = filter_input(INPUT_GET, 'cid', FILTER_SANITIZE_SPECIAL_CHARS);
+
     $userId = preg_replace('/[^0-9a-f]/i', '', $userId);
     $userName = preg_replace('/[^0-9a-z]/i', '', $userName);
     $userDisplayName = preg_replace('/[^0-9a-z öüäéèàÖÜÄÉÈÀÂÊÎÔÛâêîôû]/i', '', $userDisplayName);
@@ -170,13 +172,44 @@ try {
             // load registrations from session stored there by processCreate.
             // normaly you have to load the credential Id's for a username
             // from the database.
-            if (isset($_SESSION['registrations']) && is_array($_SESSION['registrations'])) {
-                foreach ($_SESSION['registrations'] as $reg) {
-                    if ($reg->userId === $userId) {
-                        $ids[] = $reg->credentialId;
-                    }
-                }
+
+            // if (isset($_SESSION['registrations']) && is_array($_SESSION['registrations'])) {
+            //     foreach ($_SESSION['registrations'] as $reg) {
+            //         if ($reg->userId === $userId) {
+            //             $ids[] = $reg->credentialId;
+            //         }
+            //     }
+            // }
+
+            $ipfsApiEndpoint = 'http://127.0.0.1:8080/ipfs/' . $cid;
+            $ch = curl_init();
+
+            // Set cURL options
+            curl_setopt($ch, CURLOPT_URL, $ipfsApiEndpoint);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HEADER, false);
+
+            // Send GET request to IPFS API endpoint
+            $response = curl_exec($ch);
+
+            // Close cURL session
+            curl_close($ch);
+            // Check if content was successfully fetched
+            if($response !== false){
+                $content = json_decode($response, true);
+                $pubKey = $content['publicKey'][0]['publicKeyBase58'];
+                $credId = $content['publicKey'][0]['credentialId'];
+                $msg = "IPFS fetch success";
+                $success = true;
+                $credId = base64_decode($credId);
+                array_push($ids,$credId);
+        
+            }else{
+                $msg = "Failed to fetch content from IPFS.";
+                $success = false;
             }
+
+
 
             if (count($ids) === 0) {
                 throw new Exception('no registrations in session for userId ' . $userId);
@@ -322,14 +355,40 @@ try {
         // looking up correspondending public key of the credential id
         // you should also validate that only ids of the given user name
         // are taken for the login.
-        if (isset($_SESSION['registrations']) && is_array($_SESSION['registrations'])) {
-            foreach ($_SESSION['registrations'] as $reg) {
-                if ($reg->credentialId === $id) {
-                    $credentialPublicKey = $reg->credentialPublicKey;
-                    break;
-                }
-            }
+        // if (isset($_SESSION['registrations']) && is_array($_SESSION['registrations'])) {
+        //     foreach ($_SESSION['registrations'] as $reg) {
+        //         if ($reg->credentialId === $id) {
+        //             $credentialPublicKey = $reg->credentialPublicKey;
+        //             break;
+        //         }
+        //     }
+        // }
+
+        $ipfsApiEndpoint = 'http://127.0.0.1:8080/ipfs/' . $cid;
+        $ch = curl_init();
+
+        // Set cURL options
+        curl_setopt($ch, CURLOPT_URL, $ipfsApiEndpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+
+        // Send GET request to IPFS API endpoint
+        $response = curl_exec($ch);
+
+        // Close cURL session
+        curl_close($ch);
+
+        // Check if content was successfully fetched
+        if($response !== false){
+            $content = json_decode($response, true);
+            $credentialPublicKey = $content['publicKey'][0]['publicKeyBase58'];
+            $credId = $content['publicKey'][0]['credentialId'];
         }
+
+       
+
+
+
 
         if ($credentialPublicKey === null) {
             throw new Exception('Public Key for credential ID not found!');

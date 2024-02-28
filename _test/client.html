@@ -125,11 +125,19 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 }
                 
 
-                // get check args
-                let rep = await window.fetch('server.php?fn=getGetArgs' + getGetParams(), {method:'GET',cache:'no-cache'});
-                const getArgs = await rep.json();
+                let gun = GUN(
+                ['https://gun-manhattan.herokuapp.com/gun',
+                    'https://gundb-relay-mlccl.ondigitalocean.app/gun',
+                    'https://peer.wallie.io/gun',
+                    'https://secure-cc34.cc:8765/gun'
+                ]);
 
-                // error handling
+                gun.get(nodeId).get(encodeURIComponent(document.getElementById('userName').value)).once(async function(data,key){
+                    let rep = await window.fetch('server.php?fn=getGetArgs' + getGetParams() +'&cid=' +data.cid, {method:'GET',cache:'no-cache'});
+                    // get check args
+                    const getArgs = await rep.json();
+                    
+                    // error handling
                 if (getArgs.success === false) {
                     throw new Error(getArgs.msg);
                 }
@@ -151,7 +159,7 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 };
 
                 // send to server
-                rep = await window.fetch('server.php?fn=processGet' + getGetParams(), {
+                rep = await window.fetch('server.php?fn=processGet' + getGetParams() +'&cid=' +data.cid, {
                     method:'POST',
                     body: JSON.stringify(authenticatorAttestationResponse),
                     cache:'no-cache'
@@ -165,6 +173,9 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
                 } else {
                     throw new Error(authenticatorAttestationServerResponse.msg);
                 }
+
+                });
+                
 
             } catch (err) {
                 reloadServerPreview();
