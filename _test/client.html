@@ -168,19 +168,39 @@ license https://github.com/lbuchs/WebAuthn/blob/master/LICENSE MIT
 
                 // check server response
                 if (authenticatorAttestationServerResponse.success) {
+                    //console.log('processGet',authenticatorAttestationServerResponse);
                     reloadServerPreview();
                     window.alert(authenticatorAttestationServerResponse.msg || 'login success');
                 } else {
                     throw new Error(authenticatorAttestationServerResponse.msg);
                 }
+                
+                let jwt = await getJWT();
+		
+                if(jwt) window.location.href +="/node";
 
-                });
+                        });
                 
 
             } catch (err) {
                 reloadServerPreview();
                 window.alert(err.message || 'unknown error occured');
             }
+        }
+
+
+        async function getJWT() {
+            let req = await window.fetch('server.php?fn=generateJWT', {method:'GET',cache:'no-cache'});      
+
+            let response = await req.json();
+
+            let jwt = response.jwt;
+
+            if(jwt){
+                document.cookie = `jwt=${jwt}; path=/;`;
+            }
+	    return jwt;
+
         }
 
         function clearRegistration() {
