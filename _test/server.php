@@ -35,13 +35,9 @@
  */
 
 require_once '../src/WebAuthn.php';
-require_once '../src/php-jwt/src/JWT.php';
-use \Firebase\JWT\JWT;
-
 try {
     session_start();
-    
-    //$_SESSION['authenticated'] = false;
+
     // read get argument and post body
     $fn = filter_input(INPUT_GET, 'fn');
     $requireResidentKey = !!filter_input(INPUT_GET, 'requireResidentKey');
@@ -62,7 +58,7 @@ try {
         $post = json_decode($post, null, 512, JSON_THROW_ON_ERROR);
     }
 
-    if ($fn !== 'getStoredDataHtml' && $fn !== 'generateJWT') {
+    if ($fn !== 'getStoredDataHtml') {
 
         // Formats
         $formats = [];
@@ -408,8 +404,7 @@ try {
 
         $return = new stdClass();
         $return->success = true;
-        $_SESSION['authenticated'] = true;
-        $return ->authed = $_SESSION['authenticated'];
+
         header('Content-Type: application/json');
         print(json_encode($return));
 
@@ -494,40 +489,6 @@ try {
 
         header('Content-Type: application/json');
         print(json_encode($return));
-    } else if ($fn === 'generateJWT') {
-
-        if($_SESSION['authenticated'] === true ){
-            $secretKey = "secret";
-
-            // Example user data to include in the JWT payload
-            $userData = array(
-                "user_id" => 123,
-                "username" => "john_doe",
-                "email" => "john@example.com"
-            );
-
-            // JWT payload: user data and expiration time
-            $issuedAt = time();
-            $expirationTime = $issuedAt + 3600 * 3;  // JWT expiration time (3 hours)
-            $payload = array(
-                "iat" => $issuedAt,    // Issued at: time when the token was generated
-                "exp" => $expirationTime,  // Expiration time
-                "data" => $userData
-            );
-
-            // Generate the JWT
-            $jwt = JWT::encode($payload, $secretKey, 'HS256');
-        }
-        else{
-            $jwt = null;
-        }
-        $return = new stdClass();
-        $return->jwt = $jwt;       
-        // Output the JWT
-        header('Content-Type: application/json');
-        print(json_encode($return));
-
-
     }
 
 } catch (Throwable $ex) {
