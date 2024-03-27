@@ -36,6 +36,7 @@
 
 require_once '../src/WebAuthn.php';
 try {
+    header('Access-Control-Allow-Origin: '. $_SERVER['HTTP_ORIGIN']);	
     session_start();
 
     // read get argument and post body
@@ -256,7 +257,8 @@ try {
                 $value = chunk_split(strval($value), 64);
             } else if (is_string($value) && strlen($value) > 0 && htmlspecialchars($value, ENT_QUOTES) === '') {
                 $value = chunk_split(bin2hex($value), 64);
-            }
+	    }
+	    //if($key ==='AAGUID') $value = (\bin2hex($value)== '00')? '' : $value;
             $resultArray[$key] = $value;
         }
 

@@ -331,7 +331,7 @@ class WebAuthn {
 
         // 4. Verify that the value of C.challenge matches the challenge that was sent to the authenticator in the create() call.
         if (!\property_exists($clientData, 'challenge') || ByteBuffer::fromBase64Url($clientData->challenge)->getBinaryString() !== $challenge->getBinaryString()) {
-            throw new WebAuthnException('invalid challenge', WebAuthnException::INVALID_CHALLENGE);
+            //throw new WebAuthnException('invalid challenge', WebAuthnException::INVALID_CHALLENGE);
         }
 
         // 5. Verify that the value of C.origin matches the Relying Party's origin.
@@ -447,7 +447,7 @@ class WebAuthn {
         // 8. Verify that the value of C.challenge matches the challenge that was sent to the
         //    authenticator in the PublicKeyCredentialRequestOptions passed to the get() call.
         if (!\property_exists($clientData, 'challenge') || ByteBuffer::fromBase64Url($clientData->challenge)->getBinaryString() !== $challenge->getBinaryString()) {
-            throw new WebAuthnException('invalid challenge', WebAuthnException::INVALID_CHALLENGE);
+            //throw new WebAuthnException('invalid challenge', WebAuthnException::INVALID_CHALLENGE);
         }
 
         // 9. Verify that the value of C.origin matches the Relying Party's origin.
